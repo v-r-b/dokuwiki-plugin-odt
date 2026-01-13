@@ -1,3 +1,9 @@
+2026-01-13 v-r-b
+
+    * Update export.php for use with PHP 8. 
+      Since PHP 8 doesn't know about JSON type, DokuWiki under PHP 8 throws an Exception. 
+      With PHP 8, json_decode() should be used instead of trying to create a JSON object.
+
 2015-07-18 LarsDW223
 
     * Added syntax tag for changing the page format, orientation and page margins.
