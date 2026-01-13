@@ -302,8 +302,10 @@ class action_plugin_odt_export extends DokuWiki_Action_Plugin {
 //                exit();
 //            }
 
-            $json = new JSON(JSON_LOOSE_TYPE);
-            $list = $json->decode($INPUT->post->str('selection', '', true));
+            // Since PHP 8 doesn't know about JSON type,
+            // remove this: $json = new JSON(JSON_LOOSE_TYPE);
+            // and use json_decode(...) instead
+            $list = json_decode($INPUT->post->str('selection', '', true), true);
             if(!is_array($list) || empty($list)) {
                 http_status(400);
                 print $this->getLang('empty');
