@@ -53,3 +53,5 @@ $meta['outline_list_style'] = array('multichoice', '_choices' => array('Normal',
 $meta['olist_label_align'] = array('multichoice', '_choices' => array('left', 'center', 'right'));
 
 $meta['convert_to_pdf'] = array('string');
+
+$meta['svg2png_cache'] = array('string');

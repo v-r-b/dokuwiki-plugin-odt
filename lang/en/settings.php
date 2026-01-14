@@ -45,3 +45,4 @@ $lang['index_in_browser']      = 'Display placeholder for table of contents/inde
 $lang['outline_list_style']    = 'Outline style';
 
 $lang['convert_to_pdf']        = 'Command to run for PDF conversion';
+$lang['svg2png_cache']         = 'Cache root directory for PNG files which are automatically converted from SVG';

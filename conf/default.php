@@ -57,3 +57,6 @@ $conf['olist_label_align'] = 'right';
 
 // Conversion options
 $conf['convert_to_pdf'] = 'libreoffice --headless --convert-to pdf --outdir %outdir% %sourcefile% 2>&1';
+
+// Local cache for png replcements of svg files
+$conf['svg2png_cache'] = 'svg2pngcache';

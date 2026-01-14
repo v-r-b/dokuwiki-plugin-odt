@@ -9,6 +9,9 @@
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
 
+use dokuwiki\Logger;
+use dokuwiki\HTTP\DokuHTTPClient;
+
 require_once DOKU_PLUGIN . 'odt/helper/cssimport.php';
 require_once DOKU_PLUGIN . 'odt/ODT/ODTDefaultStyles.php';
 
@@ -1160,6 +1163,149 @@ class renderer_plugin_odt_page extends Doku_Renderer {
     }
 
     /**
+     * Render svg diagrams by replacing them with a png equivalent
+     * of the same name, which is created in a cache dir of the local
+     * media library. The cache dir root is configurable.
+     * 
+     * Therefore we only handle calls with $name: 'diagrams_mediafile',
+     * where $data is an array containing source file information
+     * and data['src'] is an SVG file.
+     *
+     * @param string $name   Plugin name
+     * @param mixed  $data   custom data set by handler
+     * @param string $state  matched state if any
+     * @param string $match  raw matched syntax
+     */    
+    public function plugin($name, $data, $state='', $match='') 
+    {
+        if ($name === 'diagrams_mediafile'
+            && isset($data['src'])
+            && preg_match('/\.svg$/i', $data['src'])) {
+
+            /**
+             * SVG2PNG: intercepting diagram SVG [
+             * type=internalmedia, 
+             * src=:taetigkeiten:kasse:bonverfolgung_links.svg, 
+             * title=abc , 
+             * align=center, 
+             * width=200, height=, cache=cache, linking=details, 
+             * url=/lib/exe/fetch.php?cache=nocache&media=taetigkeiten:kasse:bonverfolgung_links.svg]
+             */
+            // Create PNG on the fly and place it in the local media svg2png cache directory
+            $png = $this->convertSvgToPng($data['src']);
+
+            Logger::debug("ODT:SVG2PNG: use $png instead of " . $data['src']);
+
+            // Handle PNG file as local media file
+            return $this->internalmedia($png, $data['title'], $data['align'], 
+                                $data['width'], $data['height'],
+                                $data['cache'], $data['linking']);
+
+        }
+        Logger::error("renderer_plugin_odt cannot handle output of plugin $name");
+        return parent::plugin($name, $data, $state, $match);
+    }
+
+    /**
+     * Convert SVG to PNG on the fly. The resulting PNG file will be
+     * placed inside the local media library in a namespace resulting
+     * from getParam('svg2png_cache') plus the namespace of the SVG.
+     * 
+     * If the PNG file already exists and its modification date is
+     * greater or equal to the SVG modification date, the conversion
+     * is skipped.
+     *
+     * @param string $mediaId   media ID of the SVG file
+     * @returns string or null  media Id of the PNG file
+     */
+    protected function convertSvgToPng(string $mediaId): ?string
+    {
+        $svgPath = mediaFN($mediaId);
+
+        // Check if SVG exists
+        if (!$svgPath || !file_exists($svgPath)) {
+            Logger::error("ODT:SVG2PNG: Source file $svgPath does not exist!");
+            return null;
+        }
+        $pngId = $this->config->getParam('svg2png_cache').preg_replace('/.svg$/', '.png', $mediaId);
+        $pngPath = mediaFN($pngId);
+
+        // Check if PNG already exists and is up to date
+        if (file_exists($pngPath) && filemtime($pngPath) >= filemtime($svgPath)) {
+            Logger::debug("ODT:SVG2PNG: $pngId is up to date");
+            return $pngId;
+        }
+
+        Logger::debug("ODT:SVG2PNG: create $pngId on the fly");
+
+        // Create dir for target namespace, if not existing
+        if (!is_dir(dirname($pngPath))) {
+            io_makeFileDir($pngPath);
+        }
+        if (!is_dir(dirname($pngPath))) {
+            Logger::error("ODT:SVG2PNG: Cannot create target namespace in dir ".dirname($pngPath));
+            return null;
+        }
+
+        // Conversion pipeline
+        $cmd = null;
+
+        // Preferred: rsvg-convert (fast, headless)
+        if ($this->commandExists('rsvg-convert')) {
+            //Logger::debug("ODT:SVG2PNG: convert SVG->PNG using rsvg-convert");
+            $cmd = sprintf(
+                'rsvg-convert -f png -o %s %s',
+                escapeshellarg($pngPath),
+                escapeshellarg($svgPath)
+            );
+
+            // Fallback: Inkscape (CLI)
+        } elseif ($this->commandExists('inkscape')) {
+            //Logger::debug("ODT:SVG2PNG: convert SVG->PNG using inkscape");
+            $cmd = sprintf(
+                'inkscape %s --export-type=png --export-filename=%s',
+                escapeshellarg($svgPath),
+                escapeshellarg($pngPath)
+            );
+
+            // Last resort: ImageMagick
+        } elseif ($this->commandExists('convert')) {
+            //Logger::debug("ODT:SVG2PNG: convert SVG->PNG using convert");
+            $cmd = sprintf(
+                'convert %s %s',
+                escapeshellarg($svgPath),
+                escapeshellarg($pngPath)
+            );
+        }
+
+        if (!$cmd) {
+            Logger::error("ODT:SVG2PNG: no SVG conversion tool available");
+            return null;
+        }
+
+        exec($cmd . ' 2>&1', $output, $rc);
+
+        if ($rc !== 0) {
+            Logger::debug("ODT:SVG2PNG: conversion yields rc $rc: " . implode(' | ', $output));
+        }
+        if (!file_exists($pngPath)) {
+            Logger::error("ODT:SVG2PNG: conversion failed: no output in $pngPath");
+            return null;
+        }
+        return $pngId;
+    }
+
+    /**
+     * Helper function finding shell commands
+     */
+   protected function commandExists(string $cmd): bool
+    {
+        $where = (stripos(PHP_OS, 'WIN') === 0) ? 'where' : 'command -v';
+        exec("$where $cmd 2>/dev/null", $out, $rc);
+        return $rc === 0;
+    }
+
+    /**
      * Render an internal media file
      *
      * @param string $src       media ID
@@ -1248,7 +1394,7 @@ class renderer_plugin_odt_page extends Doku_Renderer {
         if(substr($mime,0,5) == 'image'){
             $tmp_dir = $this->config->getParam ('tmpdir')."/odt";
             $tmp_name = $tmp_dir."/".md5($src).'.'.$ext;
-            $client = new DokuHTTPClient;
+            $client = new DokuHTTPClient();
             $img = $client->get($src);
             if ($img === FALSE) {
                 $tmp_name = $src; // fallback to a simple link

@@ -33,3 +33,4 @@ $lang['toc_style']             = 'Text-Stil für das Inhaltsverzeichnis';
 $lang['index_in_browser']      = 'Platzhalter für Inhaltsverzeichnis/Index im Browser anzeigen?';
 $lang['outline_list_style']    = 'Darstellung der Überschriften';
 $lang['convert_to_pdf']        = 'Auszuführendes Kommando für die Konvertierung nach PDF';
+$lang['svg2png_cache']         = 'Cache-Wurzelverzeichnis für automatisch aus SVG erzeugte PNG Dateien';
