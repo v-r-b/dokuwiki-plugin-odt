@@ -1,4 +1,8 @@
-2026-01-14 v-r-b
+2026-01-16 v-r-b
+
+    * Allow to choose the SVG->PNG converter, allow forcing the conversion
+
+2026-01-15 v-r-b
 
     * Added setting for maximum height for smileys being exported.
     * Switched Bitstream Vera Sans to Liberation Sans and
