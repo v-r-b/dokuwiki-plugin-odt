@@ -1312,13 +1312,17 @@ class renderer_plugin_odt_page extends Doku_Renderer {
         $pngId = $this->config->getParam('svg2png_cache').preg_replace('/.svg$/', '.png', $mediaId);
         $pngPath = mediaFN($pngId);
 
-        // Check if PNG already exists and is up to date
-        if (file_exists($pngPath) && filemtime($pngPath) >= filemtime($svgPath)) {
-            Logger::debug("ODT:SVG2PNG: $pngId is up to date");
-            return $pngId;
+        $forceConversion = $this->config->getParam('svg2png_force_conversion');
+        // If force_conversion is off, check png file first
+        if (!$forceConversion) {
+            // Check if PNG already exists and is up to date
+            if (file_exists($pngPath) && filemtime($pngPath) >= filemtime($svgPath)) {
+                Logger::debug("ODT:SVG2PNG: $pngId is up to date");
+                return $pngId;
+            }
         }
 
-        Logger::debug("ODT:SVG2PNG: create $pngId on the fly");
+        Logger::debug("ODT:SVG2PNG: create $pngId on the fly ".($forceConversion ? "(forced)" : "(outdated)"));
 
         // Create dir for target namespace, if not existing
         if (!is_dir(dirname($pngPath))) {
@@ -1331,9 +1335,9 @@ class renderer_plugin_odt_page extends Doku_Renderer {
 
         // Conversion pipeline
         $cmd = null;
-        
-        // Preferred: rsvg-convert
-        if ($this->commandExists('rsvgx-convert')) {
+        $preferredCommand = $this->config->getParam('svg2png_converter');
+
+        if (($preferredCommand === 'rsvg-convert') && $this->commandExists('rsvg-convert')) {
             $cmd = sprintf(
                 'rsvg-convert -f png -o %s %s',
                 escapeshellarg($pngPath),
@@ -1341,24 +1345,24 @@ class renderer_plugin_odt_page extends Doku_Renderer {
             );
 
             // Fallback: Inkscape (CLI)
-        } elseif ($this->commandExists('inkscape')) {
+        } elseif (($preferredCommand === 'inkscape') && $this->commandExists('inkscape')) {
             $cmd = sprintf(
-                'inkscape %s --export-text-to-path --export-type=png --export-filename=%s',
+                'inkscape %s --export-type=png --export-filename=%s',
                 escapeshellarg($svgPath),
                 escapeshellarg($pngPath)
             );
 
             // Last resort: ImageMagick
-        } elseif ($this->commandExists('convert')) {
+        } elseif (($preferredCommand === 'magick') && $this->commandExists('magick')) {
             $cmd = sprintf(
-                'convert %s %s',
+                'magick %s %s',
                 escapeshellarg($svgPath),
                 escapeshellarg($pngPath)
             );
         }
 
         if (!$cmd) {
-            Logger::error("ODT:SVG2PNG: no SVG conversion tool available");
+            Logger::error("ODT:SVG2PNG: preferred SVG conversion tool $preferredCommand is not available");
             return null;
         }
 
@@ -1367,8 +1371,10 @@ class renderer_plugin_odt_page extends Doku_Renderer {
         if (($rc !== 0) || !empty($output)) {
             Logger::debug("ODT:SVG2PNG: \"$cmd\" yields rc $rc: " . implode(' | ', $output));
         }
-        if (!file_exists($pngPath)) {
-            Logger::error("ODT:SVG2PNG: conversion failed: no output in $pngPath");
+        if (file_exists($pngPath)) {
+            Logger::error("ODT:SVG2PNG: successfully created $pngPath using $preferredCommand");
+        } else {
+            Logger::error("ODT:SVG2PNG: conversion failed using $preferredCommand: no output in $pngPath");
             return null;
         }
         return $pngId;

@@ -45,5 +45,7 @@ $lang['index_in_browser']      = 'Display placeholder for table of contents/inde
 $lang['outline_list_style']    = 'Outline style';
 
 $lang['convert_to_pdf']        = 'Command to run for PDF conversion';
+$lang['svg2png_converter']     = 'Converter tool for SVG->PNG convertions';
+$lang['svg2png_force_conversion'] = 'Force conversion even if the PNG file is up to date';
 $lang['svg2png_cache']         = 'Cache root directory for PNG files which are automatically converted from SVG';
 $lang['smiley_max_height_px']  = 'Maximum height in px for smileys being exported (0 deactivates setting)';

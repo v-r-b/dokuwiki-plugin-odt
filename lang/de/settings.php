@@ -34,5 +34,7 @@ $lang['toc_style']             = 'Text-Stil für das Inhaltsverzeichnis';
 $lang['index_in_browser']      = 'Platzhalter für Inhaltsverzeichnis/Index im Browser anzeigen?';
 $lang['outline_list_style']    = 'Darstellung der Überschriften';
 $lang['convert_to_pdf']        = 'Auszuführendes Kommando für die Konvertierung nach PDF';
+$lang['svg2png_converter']     = 'Konverter-Werkzeug für SVG->PNG Konvertierung';
+$lang['svg2png_force_conversion'] = 'Konvertierung erzwingen, auch wenn die PNG-Datei aktuell ist';
 $lang['svg2png_cache']         = 'Cache-Wurzelverzeichnis für automatisch aus SVG erzeugte PNG Dateien';
 $lang['smiley_max_height_px']  = 'Maximale Höhe in Px für Smileys beim Export (0 deaktiviert Einstellung)';

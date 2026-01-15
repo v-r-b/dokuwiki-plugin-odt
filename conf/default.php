@@ -58,6 +58,10 @@ $conf['olist_label_align'] = 'right';
 // Conversion options
 $conf['convert_to_pdf'] = 'libreoffice --headless --convert-to pdf --outdir %outdir% %sourcefile% 2>&1';
 
+// Converter to use for SVG->PNG conversions
+$conf['svg2png_converter'] = 'inkscape';
+// Force conversion even if PNG is up to date? 
+$conf['svg2png_force_conversion'] = 0;
 // Local cache for png replcements of svg files
 $conf['svg2png_cache'] = 'svg2pngcache';
 
