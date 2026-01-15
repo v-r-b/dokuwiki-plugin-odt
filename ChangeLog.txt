@@ -1,3 +1,16 @@
+2026-01-14 v-r-b
+
+    * Added setting for maximum height for smileys being exported.
+    * Switched Bitstream Vera Sans to Liberation Sans and
+      Bitstream Vera Sans Mono to Liberation Mono in styles.xml 
+      since Liberation is more common than Bitstream Vera
+
+2026-01-14 v-r-b
+
+    * Allow export of svg diagrams created by the diagrams plugin (formerly draw.io).
+      Temporary PNG equivalents of the SVG diagrams are created on the fly and used
+      for export instead of the original SVGs.
+
 2026-01-13 v-r-b
 
     * Update export.php for use with PHP 8. 

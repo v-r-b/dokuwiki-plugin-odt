@@ -34,3 +34,4 @@ $lang['index_in_browser']      = 'Platzhalter für Inhaltsverzeichnis/Index im B
 $lang['outline_list_style']    = 'Darstellung der Überschriften';
 $lang['convert_to_pdf']        = 'Auszuführendes Kommando für die Konvertierung nach PDF';
 $lang['svg2png_cache']         = 'Cache-Wurzelverzeichnis für automatisch aus SVG erzeugte PNG Dateien';
+$lang['smiley_max_height_px']  = 'Maximale Höhe in Px für Smileys beim Export (0 deaktiviert Einstellung)';

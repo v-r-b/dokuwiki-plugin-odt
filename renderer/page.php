@@ -896,11 +896,93 @@ class renderer_plugin_odt_page extends Doku_Renderer {
     }
 
     /**
+     * Taken from ODTUtility. This function returns the size in px
+     * rather than in cm. It is used by the smiley() export function.
+     */
+    function getImageSizePx($src, $maxwidth = NULL, $maxheight = NULL)
+    {
+        if (file_exists($src)) {
+            $info = getimagesize($src);
+        } else {
+            // FIXME: Add cache support for downloaded images.
+            if (class_exists('dokuwiki\HTTP\DokuHTTPClient')) {
+                $http = new dokuwiki\HTTP\DokuHTTPClient();
+            } else {
+                $http = new DokuHTTPClient();
+            }
+            $fetch = @$http->get($src);
+            if (!$fetch) {
+                return array(0, 0);
+            }
+            $info = getimagesizefromstring($fetch);
+        }
+
+        if (!$info) {
+            if (file_exists($src)) {
+                $svgfile = @simplexml_load_file($src);
+            } else {
+                $svgfile = @simplexml_load_string($fetch);
+            }
+
+            if (isset($svgfile["width"]) && isset($svgfile["height"])) {
+                $info = array(substr($svgfile["width"], 0, -2), substr($svgfile["height"], 0, -2));
+            } elseif (isset($svgfile["viewBox"])) {
+                /* preg_match("#viewbox=[\"']\d* \d* (\d*+(\.?+\d*)) (\d*+(\.?+\d*))#i", file_get_contents($src), $info);
+                $info = array($info[1], $info[3]); */
+                $info = explode(' ', $svgfile["viewBox"]);
+                $info = array($info[2], $info[3]);
+            } else {
+                return array(0, 0);
+            }
+        }
+
+        if (!isset($width)) {
+            $width  = $info[0];
+            $height = $info[1];
+        } else {
+            $height = round(($width * $info[1]) / $info[0]);
+        }
+
+        if ($maxwidth && $width > $maxwidth) {
+            $height = $height * ($maxwidth / $width);
+            $width = $maxwidth;
+        }
+        if ($maxheight && $height > $maxheight) {
+            $width = $width * ($maxheight / $height);
+            $height = $maxheight;
+        }
+
+        return array($width, $height);
+    }
+
+    /**
+     * Export smileys. If $smiley can be found in the array of smileys,
+     * the corresponding image will be exported. Otherwise the function
+     * exports the plain text "$smiley".
+     * 
+     * If the height of the graphics is greater than the parameter
+     * $this->config->getParam('smiley_max_height_px'), then its size
+     * will be adjusted to meet the maximum height. If max_height is 0,
+     * there will be no adjustment made.
+     * 
      * @param string $smiley
      */
     function smiley($smiley) {
         if ( array_key_exists($smiley, $this->smileys) ) {
             $src = DOKU_INC."lib/images/smileys/".$this->smileys[$smiley];
+
+            $maxheight = $this->config->getParam('smiley_max_height_px');
+            if ($maxheight > 0) {
+                $smileySize = $this->getImageSizePx($src);
+                $width = $smileySize[0];
+                $height = $smileySize[1];
+                if ($width && $height && ($height > $maxheight)) {
+                    $newWidth = $width * $maxheight / $height;
+                    Logger::debug("Adjusting smiley size from $width x $height to $newWidth x $maxheight");
+                    $this->_odtAddImage($src, $newWidth, $maxheight);
+                    return;
+                }
+            }
             $this->_odtAddImage($src);
         } else {
             $this->document->addPlainText($smiley);
@@ -1202,7 +1284,7 @@ class renderer_plugin_odt_page extends Doku_Renderer {
                                 $data['cache'], $data['linking']);
 
         }
-        Logger::error("renderer_plugin_odt cannot handle output of plugin $name");
+        // If the element was not for us, pass it to the parent class
         return parent::plugin($name, $data, $state, $match);
     }
 
@@ -1249,10 +1331,9 @@ class renderer_plugin_odt_page extends Doku_Renderer {
 
         // Conversion pipeline
         $cmd = null;
-
-        // Preferred: rsvg-convert (fast, headless)
-        if ($this->commandExists('rsvg-convert')) {
-            //Logger::debug("ODT:SVG2PNG: convert SVG->PNG using rsvg-convert");
+        
+        // Preferred: rsvg-convert
+        if ($this->commandExists('rsvgx-convert')) {
             $cmd = sprintf(
                 'rsvg-convert -f png -o %s %s',
                 escapeshellarg($pngPath),
@@ -1261,16 +1342,14 @@ class renderer_plugin_odt_page extends Doku_Renderer {
 
             // Fallback: Inkscape (CLI)
         } elseif ($this->commandExists('inkscape')) {
-            //Logger::debug("ODT:SVG2PNG: convert SVG->PNG using inkscape");
             $cmd = sprintf(
-                'inkscape %s --export-type=png --export-filename=%s',
+                'inkscape %s --export-text-to-path --export-type=png --export-filename=%s',
                 escapeshellarg($svgPath),
                 escapeshellarg($pngPath)
             );
 
             // Last resort: ImageMagick
         } elseif ($this->commandExists('convert')) {
-            //Logger::debug("ODT:SVG2PNG: convert SVG->PNG using convert");
             $cmd = sprintf(
                 'convert %s %s',
                 escapeshellarg($svgPath),
@@ -1285,8 +1364,8 @@ class renderer_plugin_odt_page extends Doku_Renderer {
 
         exec($cmd . ' 2>&1', $output, $rc);
 
-        if ($rc !== 0) {
-            Logger::debug("ODT:SVG2PNG: conversion yields rc $rc: " . implode(' | ', $output));
+        if (($rc !== 0) || !empty($output)) {
+            Logger::debug("ODT:SVG2PNG: \"$cmd\" yields rc $rc: " . implode(' | ', $output));
         }
         if (!file_exists($pngPath)) {
             Logger::error("ODT:SVG2PNG: conversion failed: no output in $pngPath");

@@ -55,3 +55,5 @@ $meta['olist_label_align'] = array('multichoice', '_choices' => array('left', 'c
 $meta['convert_to_pdf'] = array('string');
 
 $meta['svg2png_cache'] = array('string');
+
+$meta['smiley_max_height_px'] = array('numeric');

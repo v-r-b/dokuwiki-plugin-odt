@@ -46,3 +46,4 @@ $lang['outline_list_style']    = 'Outline style';
 
 $lang['convert_to_pdf']        = 'Command to run for PDF conversion';
 $lang['svg2png_cache']         = 'Cache root directory for PNG files which are automatically converted from SVG';
+$lang['smiley_max_height_px']  = 'Maximum height in px for smileys being exported (0 deactivates setting)';

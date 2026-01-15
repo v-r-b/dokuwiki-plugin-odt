@@ -60,3 +60,6 @@ $conf['convert_to_pdf'] = 'libreoffice --headless --convert-to pdf --outdir %out
 
 // Local cache for png replcements of svg files
 $conf['svg2png_cache'] = 'svg2pngcache';
+
+// Maximum height in pixels for exported smileys (0 = ignore setting)
+$conf['smiley_max_height_px'] = '0';

@@ -436,6 +436,15 @@ class helper_plugin_odt_config extends DokuWiki_Plugin {
                   'hasMeta'            => false,
                   'addMetaAtStartOnly' => false,
                   'refresh'            => false);
+        // TOC: maxlevel
+        $this->config ['smiley_max_height_px'] =
+            array('value'              => NULL,
+                  'DWGlobalName'       => NULL,
+                  'hasGlobal'          => true,
+                  'hasURL'             => false,
+                  'hasMeta'            => false,
+                  'addMetaAtStartOnly' => false,
+                  'refresh'            => false);
     }
 
     /**
